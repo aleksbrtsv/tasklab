@@ -30,4 +30,31 @@ public class Task {
         return status;
     }
 
+    public void start() {
+
+        if (status != TaskStatus.NEW) {
+            throw new IllegalStateException("Задача не может быть начата, текущий статус: " + status);
+        }
+
+        status = TaskStatus.IN_PROGRESS;
+    }
+
+    public void complete() {
+
+        if (status != TaskStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Задача не может быть выполнена, текущий статус: " + status);
+        }
+
+        status = TaskStatus.DONE;
+    }
+
+    public void fail() {
+
+        if (status != TaskStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Нельзя завершить задачу с ошибкой, текущий статус: " + status);
+        }
+
+        status = TaskStatus.FAILED;
+    }
+
 }
