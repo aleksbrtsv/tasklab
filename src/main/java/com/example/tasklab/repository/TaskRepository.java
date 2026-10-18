@@ -1,9 +1,11 @@
 package com.example.tasklab.repository;
 
 import com.example.tasklab.model.Task;
+import org.springframework.stereotype.Repository;
 
 import java.util.*;
 
+@Repository
 public class TaskRepository {
 
     private final Map<Long, Task> tasks = new HashMap<>();
@@ -20,12 +22,10 @@ public class TaskRepository {
     }
 
     public Optional<Task> findById(long id) {
-
         return Optional.ofNullable(tasks.get(id));
     }
 
     public List<Task> findAll() {
-
         return new ArrayList<>(tasks.values());
     }
 
