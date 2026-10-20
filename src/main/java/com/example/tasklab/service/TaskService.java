@@ -2,9 +2,11 @@ package com.example.tasklab.service;
 
 import com.example.tasklab.model.Task;
 import com.example.tasklab.model.TaskPriority;
+import com.example.tasklab.model.TaskStatus;
 import com.example.tasklab.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -24,6 +26,24 @@ public class TaskService {
 
     public Optional<Task> findById(long id) {
         return taskRepository.findById(id);
+    }
+
+    public Task startTask(long id) {
+        Task task = taskRepository.findById(id).orElseThrow();
+        task.start();
+        return task;
+    }
+
+    public Task completeTask(long id) {
+        Task task = taskRepository.findById(id).orElseThrow();
+        task.complete();
+        return task;
+    }
+
+    public Task failTask(long id) {
+        Task task = taskRepository.findById(id).orElseThrow();
+        task.fail();
+        return task;
     }
 
 }
