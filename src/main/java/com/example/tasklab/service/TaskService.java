@@ -2,11 +2,9 @@ package com.example.tasklab.service;
 
 import com.example.tasklab.model.Task;
 import com.example.tasklab.model.TaskPriority;
-import com.example.tasklab.model.TaskStatus;
 import com.example.tasklab.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
