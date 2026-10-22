@@ -26,11 +26,11 @@ public class Task {
         return priority;
     }
 
-    public TaskStatus getStatus() {
+    synchronized public TaskStatus getStatus() {
         return status;
     }
 
-    public void start() {
+    synchronized public void start() {
 
         if (status != TaskStatus.NEW) {
             throw new IllegalStateException("Задача не может быть начата, текущий статус: " + status);
@@ -39,7 +39,7 @@ public class Task {
         status = TaskStatus.IN_PROGRESS;
     }
 
-    public void complete() {
+    synchronized public void complete() {
 
         if (status != TaskStatus.IN_PROGRESS) {
             throw new IllegalStateException("Задача не может быть выполнена, текущий статус: " + status);
@@ -48,7 +48,7 @@ public class Task {
         status = TaskStatus.DONE;
     }
 
-    public void fail() {
+    synchronized public void fail() {
 
         if (status != TaskStatus.IN_PROGRESS) {
             throw new IllegalStateException("Нельзя завершить задачу с ошибкой, текущий статус: " + status);

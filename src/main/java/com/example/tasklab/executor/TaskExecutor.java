@@ -5,16 +5,15 @@ import com.example.tasklab.service.TaskService;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.concurrent.*;
 
 @Service
 public class TaskExecutor {
 
     private final TaskService taskService;
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final Set<Long> inFlightTaskIds = ConcurrentHashMap.newKeySet();
 
     public TaskExecutor(TaskService taskService) {
         this.taskService = taskService;
@@ -22,7 +21,22 @@ public class TaskExecutor {
 
     public Future<Task> executeAsync(long taskId) {
 
-        return executor.submit(() -> {
+        if (!inFlightTaskIds.add(taskId)) {
+            throw new IllegalStateException(
+                    "Задача с ID " + taskId + " уже выполняется"
+            );
+        }
+
+        try {
+            return executor.submit(() -> processTask(taskId));
+        } catch (RejectedExecutionException e) {
+            inFlightTaskIds.remove(taskId);
+            throw e;
+        }
+    }
+
+    private Task processTask(long taskId) throws InterruptedException {
+        try {
             taskService.startTask(taskId);
 
             try {
@@ -31,9 +45,16 @@ public class TaskExecutor {
                 Thread.currentThread().interrupt();
                 throw e;
             }
-            return taskService.completeTask(taskId);
-        });
 
+            return taskService.completeTask(taskId);
+
+        } finally {
+            inFlightTaskIds.remove(taskId);
+        }
+    }
+
+    public Set<Long> getInFlightTaskIds() {
+        return Set.copyOf(inFlightTaskIds);
     }
 
     @PreDestroy
@@ -49,5 +70,4 @@ public class TaskExecutor {
             Thread.currentThread().interrupt();
         }
     }
-
 }
