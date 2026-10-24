@@ -3,21 +3,19 @@ package com.example.tasklab.executor;
 import com.example.tasklab.model.Task;
 import com.example.tasklab.service.TaskService;
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
 import java.util.concurrent.*;
 
 @Service
+@RequiredArgsConstructor
 public class TaskExecutor {
 
     private final TaskService taskService;
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
     private final Set<Long> inFlightTaskIds = ConcurrentHashMap.newKeySet();
-
-    public TaskExecutor(TaskService taskService) {
-        this.taskService = taskService;
-    }
 
     public Future<Task> executeAsync(long taskId) {
 
