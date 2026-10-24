@@ -10,31 +10,27 @@ public class TaskRepository {
 
     private final Map<Long, Task> tasks = new HashMap<>();
 
-    public void save(Task task) {
+    public synchronized boolean saveIfAbsent(Task task) {
 
         long taskId = task.getId();
 
         if (tasks.containsKey(taskId)) {
-            throw new IllegalArgumentException("Задача уже сохранена");
+            return false;
         }
 
         tasks.put(taskId, task);
+        return true;
     }
 
-    public Optional<Task> findById(long id) {
+    public synchronized Optional<Task> findById(long id) {
         return Optional.ofNullable(tasks.get(id));
     }
 
-    public List<Task> findAll() {
+    public synchronized List<Task> findAll() {
         return new ArrayList<>(tasks.values());
     }
 
-    public void deleteById(long id) {
-
-        if (!tasks.containsKey(id)) {
-            throw new IllegalArgumentException("Такой задачи не существует, ID: " + id);
-        }
-
-        tasks.remove(id);
+    public synchronized boolean deleteById(long id) {
+        return tasks.remove(id) != null;
     }
 }

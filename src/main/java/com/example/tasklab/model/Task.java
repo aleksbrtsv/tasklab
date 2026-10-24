@@ -1,10 +1,15 @@
 package com.example.tasklab.model;
 
+import lombok.Getter;
+
 public class Task {
 
-    final private long id;
-    final private String title;
-    final private TaskPriority priority;
+    @Getter
+    private final long id;
+    @Getter
+    private final String title;
+    @Getter
+    private final TaskPriority priority;
     private TaskStatus status;
 
     public Task(long id, String title, TaskPriority priority) {
@@ -14,47 +19,34 @@ public class Task {
         this.status = TaskStatus.NEW;
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public TaskPriority getPriority() {
-        return priority;
-    }
-
-    synchronized public TaskStatus getStatus() {
+    public synchronized TaskStatus getStatus() {
         return status;
     }
 
-    synchronized public void start() {
-
+    public synchronized boolean tryStart() {
         if (status != TaskStatus.NEW) {
-            throw new IllegalStateException("Задача не может быть начата, текущий статус: " + status);
+            return false;
         }
 
         status = TaskStatus.IN_PROGRESS;
+        return true;
     }
 
-    synchronized public void complete() {
-
+    public synchronized boolean tryComplete() {
         if (status != TaskStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Задача не может быть выполнена, текущий статус: " + status);
+            return false;
         }
 
         status = TaskStatus.DONE;
+        return true;
     }
 
-    synchronized public void fail() {
-
+    public synchronized boolean tryFail() {
         if (status != TaskStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Нельзя завершить задачу с ошибкой, текущий статус: " + status);
+            return false;
         }
 
         status = TaskStatus.FAILED;
+        return true;
     }
-
 }
