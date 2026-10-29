@@ -2,6 +2,7 @@ package com.example.tasklab.service;
 
 import com.example.tasklab.model.Task;
 import com.example.tasklab.model.TaskPriority;
+import com.example.tasklab.model.TaskStatus;
 import com.example.tasklab.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +45,12 @@ public class TaskService {
             );
         }
 
+        if (!taskRepository.updateStatusIfCurrent(id, TaskStatus.NEW, TaskStatus.IN_PROGRESS)) {
+            throw new IllegalStateException(
+                    "Задача не может быть начата, ID: " + id
+            );
+        }
+
         return task;
     }
 
@@ -57,6 +64,12 @@ public class TaskService {
             );
         }
 
+        if (!taskRepository.updateStatusIfCurrent(id, TaskStatus.IN_PROGRESS, TaskStatus.DONE)) {
+            throw new IllegalStateException(
+                    "Задача не может быть начата, ID: " + id
+            );
+        }
+
         return task;
     }
 
@@ -67,6 +80,12 @@ public class TaskService {
         if (!task.tryFail()) {
             throw new IllegalStateException(
                     "Задача не может быть завершена с ошибкой, текущий статус: " + task.getStatus()
+            );
+        }
+
+        if (!taskRepository.updateStatusIfCurrent(id, TaskStatus.IN_PROGRESS, TaskStatus.FAILED)) {
+            throw new IllegalStateException(
+                    "Задача не может быть начата, ID: " + id
             );
         }
 
