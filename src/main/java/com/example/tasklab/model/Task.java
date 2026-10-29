@@ -2,6 +2,8 @@ package com.example.tasklab.model;
 
 import lombok.Getter;
 
+import java.util.Objects;
+
 public class Task {
 
     @Getter
@@ -48,5 +50,11 @@ public class Task {
 
         status = TaskStatus.FAILED;
         return true;
+    }
+
+    public static Task restore(long id, String title, TaskPriority priority, TaskStatus status) {
+        Task task = new Task(id, title, priority);
+        task.status = Objects.requireNonNull(status);
+        return task;
     }
 }
