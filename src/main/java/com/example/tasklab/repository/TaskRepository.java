@@ -1,10 +1,16 @@
 package com.example.tasklab.repository;
 
 import com.example.tasklab.model.Task;
+import com.example.tasklab.model.TaskPriority;
 import com.example.tasklab.model.TaskStatus;
+import com.example.tasklab.persistence.TaskEntity;
 import com.example.tasklab.persistence.TaskJpaRepository;
 import com.example.tasklab.persistence.TaskMapper;
+import com.example.tasklab.persistence.TaskSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -47,5 +53,29 @@ public class TaskRepository {
                 expectedStatus.name(),
                 newStatus.name()
         ) == 1;
+    }
+
+    public Page<Task> searchTasks(
+            String title,
+            TaskStatus status,
+            TaskPriority priority,
+            Pageable pageable) {
+
+        Specification<TaskEntity> spec = Specification.unrestricted();
+
+        if (title != null && !title.isBlank()) {
+            spec = spec.and(TaskSpecifications.titleContains(title.trim()));
+        }
+
+        if (status != null) {
+            spec = spec.and(TaskSpecifications.hasStatus(status));
+        }
+
+        if (priority != null) {
+            spec = spec.and(TaskSpecifications.hasPriority(priority));
+        }
+
+        return taskJpaRepository.findAll(spec, pageable)
+                .map(TaskMapper::toDomain);
     }
 }

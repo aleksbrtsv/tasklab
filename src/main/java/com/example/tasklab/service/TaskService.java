@@ -4,8 +4,11 @@ import com.example.tasklab.model.Task;
 import com.example.tasklab.model.TaskPriority;
 import com.example.tasklab.model.TaskStatus;
 import com.example.tasklab.repository.TaskRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -29,10 +32,6 @@ public class TaskService {
         if (!taskRepository.deleteById(id)) {
             throw new IllegalArgumentException("Такой задачи не существует, ID: " + id);
         }
-    }
-
-    public Optional<Task> findById(long id) {
-        return taskRepository.findById(id);
     }
 
     public Task startTask(long id) {
@@ -91,4 +90,13 @@ public class TaskService {
 
         return task;
     }
+
+    public Optional<Task> findById(long id) {
+        return taskRepository.findById(id);
+    }
+
+    public Page<Task> searchTasks(String title, TaskStatus status, TaskPriority priority, Pageable pageable) {
+        return taskRepository.searchTasks(title, status, priority, pageable);
+    }
+
 }
