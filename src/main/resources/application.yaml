@@ -6,8 +6,18 @@ spring:
     url: jdbc:postgresql://localhost:5432/tasklab
     username: tasklab
     password: ${DB_PASSWORD:tasklab_local_password}
+    hikari:
+      pool-name: TaskLabPool
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: true
+    open-in-view: false
+
+tasklab:
+  executor:
+    pool-size: 3

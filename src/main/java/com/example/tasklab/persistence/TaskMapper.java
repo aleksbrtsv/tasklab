@@ -1,18 +1,18 @@
 package com.example.tasklab.persistence;
 
 import com.example.tasklab.model.Task;
+import org.mapstruct.Mapper;
 
-public class TaskMapper {
+@Mapper(componentModel = "spring")
+public interface TaskMapper {
 
-    public static TaskEntity toEntity(Task task) {
-        return new TaskEntity(
-                task.getId(),
-                task.getTitle(),
-                task.getPriority(),
-                task.getStatus()
-        );
-    }
-    public static Task toDomain(TaskEntity entity) {
+    TaskEntity toEntity(Task task);
+
+    default Task toDomain(TaskEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
         return Task.restore(
                 entity.getId(),
                 entity.getTitle(),

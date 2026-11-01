@@ -1,0 +1,508 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskLab</title>
+
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+  <style>
+    body {
+      padding: 30px 0;
+    }
+
+    main {
+      max-width: 1100px;
+    }
+
+    header {
+      margin-bottom: 30px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .filters > input,
+    .filters > select,
+    .filters > button {
+      margin: 0;
+      height: 3.25rem;
+    }
+
+    .filters > button {
+      padding: 0 24px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .actions button {
+      padding: 6px 12px;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #edf2f7;
+      color: #243447;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pagination button {
+      width: auto;
+      margin: 0;
+    }
+
+    #message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 16px 24px;
+      border-radius: 10px;
+      color: white;
+      box-shadow: 0 6px 24px #0003;
+      max-width: 380px;
+      display: none;
+      overflow-wrap: anywhere;
+    }
+
+    #message.success {
+      display: block;
+      background: #176b48;
+    }
+
+    #message.error {
+      display: block;
+      background: #a52c38;
+    }
+
+    @media (max-width: 750px) {
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        font-size: 13px;
+      }
+
+      .pagination button {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<main class="container">
+
+  <header>
+    <h1>TaskLab</h1>
+    <p>Панель управления задачами</p>
+  </header>
+
+  <!-- СОЗДАНИЕ ЗАДАЧИ -->
+  <article>
+    <h3>Создать задачу</h3>
+
+    <form id="createForm">
+      <div class="grid">
+        <input id="taskId"
+               type="number"
+               min="1"
+               placeholder="ID"
+               required>
+
+        <input id="taskTitle"
+               type="text"
+               placeholder="Название задачи"
+               required>
+
+        <select id="taskPriority">
+          <option value="LOW">Low</option>
+          <option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+      </div>
+
+      <button type="submit">+ Создать задачу</button>
+    </form>
+  </article>
+
+  <!-- СПИСОК ЗАДАЧ -->
+  <article>
+    <h3>Список задач</h3>
+
+    <div class="filters">
+      <input id="searchTitle"
+             placeholder="Поиск по названию">
+
+      <select id="filterStatus">
+        <option value="">Все статусы</option>
+        <option value="NEW">NEW</option>
+        <option value="IN_PROGRESS">IN_PROGRESS</option>
+        <option value="DONE">DONE</option>
+        <option value="FAILED">FAILED</option>
+      </select>
+
+      <select id="filterPriority">
+        <option value="">Все приоритеты</option>
+        <option value="LOW">LOW</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="HIGH">HIGH</option>
+      </select>
+
+      <button type="button" onclick="applyFilters()">
+        Найти
+      </button>
+    </div>
+
+    <figure style="overflow-x: auto;">
+      <table>
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Приоритет</th>
+          <th>Статус</th>
+          <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="taskTable"></tbody>
+      </table>
+    </figure>
+
+    <div class="pagination">
+      <button class="secondary outline"
+              id="prevButton"
+              onclick="changePage(-1)">
+        ← Назад
+      </button>
+
+      <span id="pageInfo">Страница 1</span>
+
+      <button class="secondary outline"
+              id="nextButton"
+              onclick="changePage(1)">
+        Вперёд →
+      </button>
+    </div>
+  </article>
+
+</main>
+
+<!-- УВЕДОМЛЕНИЯ -->
+<div id="message" role="status" aria-live="polite"></div>
+
+<script>
+  const API = '/tasks';
+
+  let currentPage = 0;
+  let totalPages = 0;
+  let messageTimeout;
+
+  const table = document.getElementById('taskTable');
+  const message = document.getElementById('message');
+
+  // Уведомления
+  function showMessage(text, type = 'success') {
+    clearTimeout(messageTimeout);
+
+    message.textContent = text;
+    message.className = type;
+
+    messageTimeout = setTimeout(() => {
+      message.className = '';
+    }, 4000);
+  }
+
+  // Универсальный HTTP-запрос
+  async function apiRequest(url, options = {}) {
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      const contentType =
+              response.headers.get('content-type') || '';
+
+      const errorText = await response.text();
+      let errorMessage = errorText;
+
+      if (contentType.includes('application/json')) {
+        try {
+          const data = JSON.parse(errorText);
+
+          errorMessage =
+                  data.message ||
+                  data.detail ||
+                  data.error ||
+                  '';
+        } catch {
+          errorMessage = '';
+        }
+      }
+
+      const defaultMessages = {
+        400: 'Некорректные данные',
+        404: 'Задача не найдена',
+        409: 'Конфликт при выполнении операции',
+        500: 'Внутренняя ошибка сервера'
+      };
+
+      throw new Error(
+              errorMessage ||
+              defaultMessages[response.status] ||
+              `Ошибка HTTP ${response.status}`
+      );
+    }
+
+    if (response.status === 204 || response.status === 205) {
+      return null;
+    }
+
+    return response.json();
+  }
+
+  // Загрузка задач
+  async function loadTasks() {
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        size: 10
+      });
+
+      const title = document.getElementById('searchTitle')
+              .value.trim();
+
+      const status = document.getElementById('filterStatus')
+              .value;
+
+      const priority = document.getElementById('filterPriority')
+              .value;
+
+      if (title) params.set('title', title);
+      if (status) params.set('status', status);
+      if (priority) params.set('priority', priority);
+
+      const data = await apiRequest(`${API}?${params}`);
+
+      totalPages = data.totalPages;
+
+      // Если удалили последнюю задачу на странице
+      if (currentPage > 0 && currentPage >= totalPages) {
+        currentPage = Math.max(0, totalPages - 1);
+        return loadTasks();
+      }
+
+      renderTasks(data.content);
+
+      document.getElementById('pageInfo').textContent =
+              `Страница ${currentPage + 1} / ${Math.max(totalPages, 1)}`;
+
+      document.getElementById('prevButton').disabled =
+              currentPage === 0;
+
+      document.getElementById('nextButton').disabled =
+              currentPage >= totalPages - 1;
+
+    } catch (error) {
+      showMessage(
+              `Ошибка загрузки: ${error.message}`,
+              'error'
+      );
+    }
+  }
+
+  // Отображение таблицы
+  function renderTasks(tasks) {
+    table.replaceChildren();
+
+    if (tasks.length === 0) {
+      const row = table.insertRow();
+      const cell = row.insertCell();
+
+      cell.colSpan = 5;
+      cell.textContent = 'Задачи не найдены';
+      return;
+    }
+
+    for (const task of tasks) {
+      const row = table.insertRow();
+
+      row.insertCell().textContent = task.id;
+      row.insertCell().textContent = task.title;
+      row.insertCell().textContent = task.priority;
+
+      const statusCell = row.insertCell();
+      const badge = document.createElement('span');
+
+      badge.className = 'badge';
+      badge.textContent = task.status;
+      statusCell.appendChild(badge);
+
+      const actionsCell = row.insertCell();
+      const actions = document.createElement('div');
+
+      actions.className = 'actions';
+      actionsCell.appendChild(actions);
+
+      // NEW -> IN_PROGRESS
+      if (task.status === 'NEW') {
+        addButton(actions, 'Старт', () =>
+                changeStatus(task.id, 'start'));
+      }
+
+      // IN_PROGRESS -> DONE / FAILED
+      if (task.status === 'IN_PROGRESS') {
+        addButton(actions, 'Готово', () =>
+                changeStatus(task.id, 'complete'));
+
+        addButton(actions, 'Ошибка', () =>
+                changeStatus(task.id, 'fail'));
+      }
+
+      addButton(actions, 'Удалить', () =>
+              deleteTask(task.id), 'secondary outline');
+    }
+  }
+
+  // Создание кнопки
+  function addButton(container, text, action, className = '') {
+    const button = document.createElement('button');
+
+    button.textContent = text;
+    button.className = className;
+    button.type = 'button';
+
+    button.addEventListener('click', action);
+    container.appendChild(button);
+  }
+
+  // Создание задачи
+  document.getElementById('createForm')
+          .addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const task = {
+              id: Number(document.getElementById('taskId').value),
+              title: document.getElementById('taskTitle')
+                      .value.trim(),
+              priority: document.getElementById('taskPriority')
+                      .value
+            };
+
+            try {
+              await apiRequest(API, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(task)
+              });
+
+              document.getElementById('createForm').reset();
+
+              showMessage('Задача успешно создана', 'success');
+
+              currentPage = 0;
+              await loadTasks();
+
+            } catch (error) {
+              showMessage(
+                      `Ошибка создания: ${error.message}`,
+                      'error'
+              );
+            }
+          });
+
+  // Изменение статуса задачи
+  async function changeStatus(id, action) {
+    try {
+      await apiRequest(`${API}/${id}/${action}`, {
+        method: 'PATCH'
+      });
+
+      showMessage(
+              `Статус задачи #${id} обновлён`,
+              'success'
+      );
+
+      await loadTasks();
+
+    } catch (error) {
+      showMessage(
+              `Ошибка изменения статуса: ${error.message}`,
+              'error'
+      );
+    }
+  }
+
+  // Удаление задачи
+  async function deleteTask(id) {
+    if (!confirm(`Удалить задачу #${id}?`)) {
+      return;
+    }
+
+    try {
+      await apiRequest(`${API}/${id}`, {
+        method: 'DELETE'
+      });
+
+      showMessage(
+              `Задача #${id} удалена`,
+              'success'
+      );
+
+      await loadTasks();
+
+    } catch (error) {
+      showMessage(
+              `Ошибка удаления: ${error.message}`,
+              'error'
+      );
+    }
+  }
+
+  // Фильтрация
+  function applyFilters() {
+    currentPage = 0;
+    loadTasks();
+  }
+
+  // Пагинация
+  function changePage(direction) {
+    const nextPage = currentPage + direction;
+
+    if (nextPage < 0 || nextPage >= totalPages) {
+      return;
+    }
+
+    currentPage = nextPage;
+    loadTasks();
+  }
+
+  // Загрузка при открытии страницы
+  loadTasks();
+</script>
+</body>
+</html>
