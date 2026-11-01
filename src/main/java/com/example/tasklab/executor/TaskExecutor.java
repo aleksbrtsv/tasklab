@@ -14,7 +14,7 @@ import java.util.concurrent.*;
 public class TaskExecutor {
 
     private final TaskService taskService;
-    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final ExecutorService executor;
     private final Set<Long> inFlightTaskIds = ConcurrentHashMap.newKeySet();
 
     public Future<Task> executeAsync(long taskId) {

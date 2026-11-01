@@ -3,9 +3,12 @@ package com.example.tasklab.persistence;
 import com.example.tasklab.model.TaskPriority;
 import com.example.tasklab.model.TaskStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.*;
 
 @Getter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Entity
 @Table(name = "tasks")
 public class TaskEntity {
@@ -23,14 +26,4 @@ public class TaskEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TaskStatus status;
-
-    protected TaskEntity() {
-    }
-
-    public TaskEntity(Long id, String title, TaskPriority priority, TaskStatus status) {
-        this.id = id;
-        this.title = title;
-        this.priority = priority;
-        this.status = status;
-    }
 }
